@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Translator</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('{% static "images/back.jpg" %}'); /* Use the static template tag */
+            background-size: cover;
+            background-position: center;
+        }
+        .container {
+            background: rgba(233, 236, 239, 0.9); /* Slightly transparent gray background */
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        #result {
+            margin-top: 1rem;
+            white-space: pre-line;
+        }
+    </style>
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('translateForm').addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const csrftoken = getCookie('csrftoken');
+                const languageCode = document.getElementById('languageCode').value;
+                const languages = [document.getElementById('languages').value];
+
+                fetch('/process_audio/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                    body: JSON.stringify({
+                        target_languages: languages,
+                        language_code: languageCode
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('result').innerText = 'Error: ' + data.error;
+                    } else {
+                        document.getElementById('result').innerText = 'Recognized Text: ' + data.recognized_text + '\nTranslated Texts:';
+                        for (const [language, translatedText] of Object.entries(data.translated_texts)) {
+                            document.getElementById('result').innerText += `\n${language}: ${translatedText}`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('result').innerText = 'Error: ' + error;
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container text-center">
+        <h1 class="mb-4">Voice Translator</h1>
+        <form id="translateForm">
+            <div class="form-group">
+                <label for="languageCode">Select the language code:</label>
+                <select class="form-select" id="languageCode" name="languageCode" required>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="ta">Tamil</option>
+                    <!-- Add more languages as needed -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="languages">Select your desired target languages:</label>
+                <select class="form-select" id="languages" name="languages" required>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="ta">Tamil</option>
+                    <!-- Add more languages as needed -->
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Start Recording</button>
+        </form>
+        <div id="result" class="mt-4"></div>
+    </div>
+</body>
+</html>
